@@ -117,6 +117,8 @@ public class World extends Region {
     private              Country                         formerSelectedCountry;
     private              double                          zoomSceneX;
     private              double                          zoomSceneY;
+    private              double                          dragDeltax;
+    private              double                          dragDeltay;
     private              double                          width;
     private              double                          height;
     protected            Ikon                            locationIconCode;
@@ -243,9 +245,10 @@ public class World extends Region {
             scale           = evt.getDeltaY() < 0 ? scale / delta : scale * delta;
             scale           = clamp( 1, 10, scale);
             double factor   = (scale / oldScale) - 1;
+            zoomSceneX = evt.getSceneX();
+            zoomSceneY = evt.getSceneY();
             if (Double.compare(1, getScaleFactor()) == 0) {
-                zoomSceneX = evt.getSceneX();
-                zoomSceneY = evt.getSceneY();
+                
                 resetZoom();
             }
             double deltaX = (zoomSceneX - (getBoundsInParent().getWidth() / 2 + getBoundsInParent().getMinX()));
@@ -304,6 +307,19 @@ public class World extends Region {
         sceneProperty().addListener(o -> {
             if (!locations.isEmpty()) { addShapesToScene(locations.values()); }
             if (isZoomEnabled()) { getScene().addEventFilter( ScrollEvent.ANY, new WeakEventHandler<>(_scrollEventHandler)); }
+            getScene().setOnMousePressed(new EventHandler<MouseEvent>() {
+                @Override public void handle(MouseEvent mouseEvent) {
+                  // record a delta distance for the drag and drop operation.
+                    dragDeltax = getScene().getX() - mouseEvent.getScreenX();
+                    dragDeltay = getScene().getY() - mouseEvent.getScreenY();
+                }
+            });
+            getScene().setOnMouseDragged(new EventHandler<MouseEvent>() {
+                @Override public void handle(MouseEvent mouseEvent) {
+                    setTranslateX(mouseEvent.getScreenX() + dragDeltax);
+                    setTranslateY(mouseEvent.getScreenY() + dragDeltay);
+                }
+            });
 
             locations.addListener((MapChangeListener<Location, Shape>) CHANGE -> {
                 if (CHANGE.wasAdded()) {
